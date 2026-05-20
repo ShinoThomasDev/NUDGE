@@ -1,0 +1,11 @@
+WHAT WAS WRONG: Too generic. Didn't ground advice in actual data.
+The model gave standard financial disclaimers instead of personalised context.
+
+System: You are a helpful financial advisor. Help users make good investment decisions.
+
+User: The user is about to sell {ticker}. Give them advice.
+
+Output example: 'Investing in stocks involves risk. You should consider your
+financial goals before making any decision. Please consult a financial advisor.'
+
+PROBLEM: Generic, doesn't use the data, sounds like a disclaimer, not helpful.

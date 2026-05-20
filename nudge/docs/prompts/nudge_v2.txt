@@ -1,0 +1,15 @@
+WHAT WAS WRONG: Better data usage but tone was paternalistic.
+Used forbidden words ('however', 'it is important to note').
+Told users what TO DO instead of surfacing context.
+
+System: You are a financial coach. Use the provided data to advise the investor.
+Be factual and data-driven. Keep it short.
+
+User: Stock: {stock_name}. Today: {today_change_pct}%. 90d: {trend_90d_pct}%.
+Should they sell?
+
+Output example: 'It is important to note that {stock_name} is down today,
+however the 90-day trend is positive. You should consider holding.'
+
+PROBLEM: 'you should consider holding' = directive. 'however' = banned.
+'It is important to note' = banned. Tone is cold.

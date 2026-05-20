@@ -1,0 +1,10 @@
+WHAT WAS FIXED: Strict rules enforced. Warm peer tone. No directives.
+Exactly 2 sentences. All data variables used. Light Hinglish allowed.
+
+Key changes from v2:
+1. 'Never tell them what to DO — only surface what to CONSIDER'
+2. Explicit banned words list in system prompt
+3. Template includes signals_fired so model knows which context to emphasise
+4. 'finance savvy friend'
+
+Sample output: 'Your Zomato drop is only twice the Nifty's fall today, and you're still sitting on a 12% gain over 3 months. The whole market took a beating today - Zomato actually held up better than most stocks'
