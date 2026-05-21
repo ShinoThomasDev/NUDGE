@@ -103,6 +103,9 @@ def _signal_trend_contradiction(ticker: str) -> dict:
         return_90d = (price_today - price_90d_ago) / price_90d_ago * 100
         today_change = (price_today - price_yesterday) / price_yesterday * 100
 
+        direction_90d = "Up" if return_90d >= 0 else "Down"
+        direction_today = "up" if today_change >= 0 else "down"
+
         if return_90d > 5 and today_change < -2:
             score = min(return_90d * 0.8, 25)
         else:
@@ -111,7 +114,7 @@ def _signal_trend_contradiction(ticker: str) -> dict:
         return {
             'value': round(return_90d, 2),
             'score': round(score),
-            'label': f'Up {return_90d:.1f}% in 90d, down {abs(today_change):.1f}% today',
+            'label': f'{direction_90d} {abs(return_90d):.1f}% in 90d, {direction_today} {abs(today_change):.1f}% today',
             'fired': score > 0,
             'today_change_pct': round(today_change, 2),
             'current_price': round(price_today, 2),
