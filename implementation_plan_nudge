@@ -1,0 +1,235 @@
+# Nudge → Production SaaS: Implementation Plan
+
+## Current State Assessment
+
+| Layer | Current | Target |
+|-------|---------|--------|
+| **Frontend** | 5 flat components, no folder structure, hardcoded `USER_ID` | Modular feature folders, context-based auth, reusable UI primitives |
+| **Backend** | 6 flat Python files, SQLite, 6 API routes | Organized modules, new models for timeline/journal/profiles, 15+ routes |
+| **Auth** | None — hardcoded `user_shinothomas_demo` | Google OAuth → JWT sessions → protected routes |
+| **State** | `useState` per component, prop drilling | React Context for auth + portfolio, custom hooks for data fetching |
+| **UX** | Functional but sparse — no empty states, no loading skeletons, no animations | Production-grade loading states, transitions, micro-interactions |
+
+## Phased Roadmap
+
+> [!IMPORTANT]
+> This is a **large** transformation. I propose executing it in **4 phases**, each self-contained and testable. Each phase builds on the previous one. I recommend we go phase-by-phase with your approval at each gate.
+
+---
+
+## Phase 1: Architecture Foundation + Enhanced Dashboard (Core)
+**Estimated files: ~20 new/modified**  
+**Goal:** Restructure the codebase for scalability, build the reusable UI system, and deliver a polished dashboard with real data.
+
+### Frontend Restructure
+
+#### [NEW] Folder Structure
+```
+src/
+├── api/
+│   └── index.js              # Centralized API client (replaces api.js)
+├── components/
+│   ├── ui/                    # Reusable primitives
+│   │   ├── Card.jsx
+│   │   ├── Badge.jsx
+│   │   ├── Button.jsx
+│   │   ├── Skeleton.jsx       # Loading skeleton
+│   │   ├── EmptyState.jsx
+│   │   └── StatCard.jsx       # Metric card with label/value/trend
+│   └── layout/
+│       ├── Layout.jsx         # Enhanced sidebar + topbar
+│       ├── Sidebar.jsx        # Extracted sidebar
+│       └── TopBar.jsx         # Page header with breadcrumbs
+├── pages/
+│   ├── Dashboard.jsx          # New: overview landing page
+│   ├── Portfolio.jsx          # Refactored from components/
+│   ├── Analytics.jsx          # Refactored BehaviourDashboard
+│   ├── SellConfirm.jsx        # Refactored from components/
+│   ├── Timeline.jsx           # New: behavioral timeline
+│   └── Journal.jsx            # New: investor journal
+├── features/
+│   └── nudge/
+│       └── NudgeModal.jsx     # Nudge modal (feature-scoped)
+├── hooks/
+│   ├── usePortfolio.js        # Custom hook for portfolio data
+│   ├── useMarket.js           # Custom hook for market status
+│   └── useDashboard.js        # Custom hook for analytics data
+├── context/
+│   └── AuthContext.jsx        # Auth state (Phase 2)
+├── App.jsx
+├── main.jsx
+└── index.css
+```
+
+#### [MODIFY] Layout.jsx → Enhanced Navigation
+- Add icons to sidebar nav items (Dashboard, Portfolio, Analytics, Timeline, Journal)
+- Add a top bar with page title, breadcrumbs, and notification bell
+- Add mobile drawer menu (hamburger → slide-out)
+- Animate route transitions
+
+#### [NEW] `components/ui/Skeleton.jsx`
+- Reusable loading skeleton component
+- Variants: `text`, `card`, `table-row`, `chart`
+
+#### [NEW] `components/ui/EmptyState.jsx`
+- Illustration + message + CTA button
+- Used across Portfolio (no holdings), Timeline (no history), Journal (no entries)
+
+#### [NEW] `components/ui/StatCard.jsx`
+- Reusable metric card: label, value, trend arrow, optional sparkline
+- Used in Dashboard overview and Analytics
+
+#### [NEW] `pages/Dashboard.jsx`
+- **Top row:** 3 StatCards (Portfolio Value, Nifty, Sensex) — already built, extract into reusable
+- **Middle row:** Portfolio Health Score card (behavioral score 0–100) + Market Mood indicator
+- **Bottom:** Quick insight cards (Most reactive stock, Best discipline, etc.)
+- This becomes the new `index` route
+
+#### [MODIFY] `pages/Portfolio.jsx`
+- Move from `/` to `/portfolio`
+- Add allocation pie chart (Recharts `PieChart`)
+- Add loading skeletons while data fetches
+- Add empty state if no holdings
+
+---
+
+### Backend Additions
+
+#### [MODIFY] `models.py` — New Models
+
+```python
+class JournalEntry(Base):
+    __tablename__ = 'journal_entries'
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    user_id    = Column(String, ForeignKey('users.id'), nullable=False)
+    ticker     = Column(String, nullable=True)           # optional: tied to a stock
+    entry_type = Column(String, default='reflection')    # pre_sell, post_sell, reflection
+    content    = Column(Text, nullable=False)
+    mood       = Column(String, nullable=True)           # calm, anxious, confident, uncertain
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class BehavioralProfile(Base):
+    __tablename__ = 'behavioral_profiles'
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    user_id         = Column(String, ForeignKey('users.id'), unique=True, nullable=False)
+    profile_type    = Column(String, nullable=False)     # panic_seller, reactive_trader, etc.
+    heed_rate       = Column(Float, default=0.0)
+    avg_hold_days   = Column(Float, default=0.0)
+    sell_frequency  = Column(Float, default=0.0)         # sells per week
+    health_score    = Column(Integer, default=50)        # 0-100
+    last_computed   = Column(DateTime, default=datetime.utcnow)
+```
+
+#### [MODIFY] `main.py` — New API Routes
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/portfolio-health/{user_id}` | GET | Compute behavioral health score |
+| `/api/timeline/{user_id}` | GET | Behavioral timeline events |
+| `/api/journal/{user_id}` | GET | List journal entries |
+| `/api/journal` | POST | Create journal entry |
+| `/api/insight-cards/{user_id}` | GET | Computed insight cards |
+| `/api/behavioral-profile/{user_id}` | GET | Investor personality profile |
+| `/api/recovery-outcomes/{user_id}` | GET | Post-sell outcome tracking |
+
+---
+
+## Phase 2: Authentication + Personalization
+**Goal:** Replace hardcoded user ID with real Google OAuth, add protected routes, and personalize the experience.
+
+### Backend
+- Add `python-jose` + `passlib` for JWT
+- Google OAuth callback endpoint
+- Session middleware
+- Protected route decorator
+
+### Frontend
+- Google Sign-In button (using `@react-oauth/google`)
+- `AuthContext` provider wrapping the app
+- Protected `<Route>` wrapper component
+- Profile dropdown in sidebar
+- Onboarding screen for first-time users
+- Logout flow
+
+> [!WARNING]
+> Google OAuth requires a Google Cloud Console project with OAuth credentials configured. You'll need to set up a consent screen and get a Client ID. I can guide you through this when we reach Phase 2.
+
+---
+
+## Phase 3: Advanced Behavioral Features
+**Goal:** Build the differentiating features that make Nudge unique.
+
+### Behavioral Timeline
+- Chronological feed of all sell attempts, nudges, outcomes
+- Recovery tracking: "If you had held, your position would be worth ₹X"
+- Market event annotations
+- Visual timeline component with icons and connecting lines
+
+### Investor Journal
+- Pre-sell emotional check-in ("How are you feeling about this trade?")
+- Post-trade reflection prompts
+- Mood tagging system
+- AI-generated weekly summaries of emotional patterns
+
+### Recovery Outcome Tracking
+- After each sell, track what the stock did in the following 7/30/90 days
+- "What would have happened if you held" insight cards
+- Aggregate missed gains/losses
+
+### AI Behavioral Insights
+- Weekly AI-generated behavioral summaries
+- Pattern detection (e.g., "You tend to sell on Mondays after red markets")
+- Personality profile computation
+
+---
+
+## Phase 4: Polish + Market Intelligence
+**Goal:** Production polish, market mood layer, micro-interactions.
+
+### Market Mood Layer
+- Fear & Greed index visualization
+- VIX-based volatility meter
+- Market sentiment badge on dashboard
+- Contextual overlay on nudge modal ("Market is stressed today")
+
+### Micro-interactions
+- Page transition animations (Framer Motion)
+- Chart entrance animations
+- Button press feedback
+- Toast notifications for sell execution
+- Confetti/celebration when user heeds a nudge
+
+### Portfolio Health Score
+- Composite behavioral discipline score
+- Factors: diversification, overtrading, panic frequency, hold duration
+- Gauge/radial chart visualization
+- Trend over time
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Phase 1 is the critical foundation.** It restructures the codebase so that Phases 2–4 can be built cleanly on top. I recommend we start with Phase 1 and review before proceeding.
+
+> [!IMPORTANT]
+> **Authentication (Phase 2) requires external setup.** You'll need a Google Cloud Console project. If you want to skip auth for now and keep the demo user, we can move Phase 3 features into Phase 1.
+
+## Open Questions
+
+1. **Do you want to start with Phase 1 immediately?** I'll restructure the folder system, build the UI primitives, and create the enhanced Dashboard + Timeline pages.
+
+2. **Authentication priority:** Should we implement Google OAuth in Phase 2, or is the hardcoded demo user acceptable for your current use case (e.g., a portfolio project / demo)?
+
+3. **Chart library:** We're currently using Recharts. Should we stick with it, or would you prefer something like `@nivo/core` for more premium chart aesthetics?
+
+4. **Animations:** Should I add `framer-motion` as a dependency for page transitions and micro-interactions, or keep it CSS-only?
+
+## Verification Plan
+
+### After Each Phase
+- All existing features continue working (sell flow, nudge modal, dashboard)
+- New components render correctly with loading/empty/error states
+- Responsive layout works on mobile and desktop
+- No console errors or warnings
+- Backend endpoints return correct data shapes

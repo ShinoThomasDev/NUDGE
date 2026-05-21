@@ -44,11 +44,16 @@ def _signal_market_dip() -> dict:
     Scoring: fires only if Nifty < -1.5%. Score = abs(change) * 5, max 25.
     '''
     try:
-        nifty = yf.download('^NSEI', period='2d', interval='1d', progress=False)
+        nifty = yf.download('^NSEI', period='5d', interval='1d', progress=False)
+        if 'Close' in nifty:
+            nifty = nifty['Close'].dropna()
+        else:
+            nifty = nifty.dropna()
+            
         if len(nifty) < 2:
             return {'value': 0, 'score': 0, 'label': 'Market data unavailable', 'fired': False}
-        today_change = ((nifty['Close'].iloc[-1] - nifty['Close'].iloc[-2])
-                        / nifty['Close'].iloc[-2] * 100).item()
+        today_change = ((nifty.iloc[-1] - nifty.iloc[-2])
+                        / nifty.iloc[-2] * 100).item()
         if today_change < -1.5:
             score = min(abs(today_change) * 5, 25)
         else:
@@ -65,7 +70,8 @@ def _signal_market_dip() -> dict:
 # Mapping for known ticker changes to ensure Yahoo Finance compatibility
 TICKER_ALIASES = {
     'ZOMATO': 'ETERNAL',
-    # Add other future ticker changes here
+    'TATAMOTORS': 'TMPV',
+    
 }
 
 '''
@@ -93,12 +99,17 @@ def _signal_trend_contradiction(ticker: str) -> dict:
         #yf_ticker because sometimes yfinance does not find the ticker symbol
         #eg : zomato is now ETERNAL so we use yf_ticker
         hist = yf.download(f'{yf_ticker}.NS', period='95d', interval='1d', progress=False)
+        if 'Close' in hist:
+            hist = hist['Close'].dropna()
+        else:
+            hist = hist.dropna()
+            
         if len(hist) < 5:
             return {'value': 0, 'score': 0, 'label': 'History unavailable', 'fired': False}
 
-        price_90d_ago = hist['Close'].iloc[0].item()
-        price_yesterday = hist['Close'].iloc[-2].item()
-        price_today = hist['Close'].iloc[-1].item()
+        price_90d_ago = hist.iloc[0].item()
+        price_yesterday = hist.iloc[-2].item()
+        price_today = hist.iloc[-1].item()
 
         return_90d = (price_today - price_90d_ago) / price_90d_ago * 100
         today_change = (price_today - price_yesterday) / price_yesterday * 100

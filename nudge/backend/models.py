@@ -5,7 +5,7 @@ from datetime import datetime
 
 class User(Base):
     __tablename__ = 'users'
-    id         = Column(String, primary_key=True)   # e.g. 'user_rahul_demo'
+    id         = Column(String, primary_key=True)   # e.g. 'user_shinothomas_demo'
     name       = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -51,3 +51,24 @@ class Trade(Base):
     nudge_id     = Column(Integer, ForeignKey('nudges.id'), nullable=True)
     heeded_nudge = Column(Boolean, nullable=True)    # did they hold after nudge?
     executed_at  = Column(DateTime, default=datetime.utcnow)
+
+class JournalEntry(Base):
+    __tablename__ = 'journal_entries'
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    user_id    = Column(String, ForeignKey('users.id'), nullable=False)
+    ticker     = Column(String, nullable=True)           # optional: tied to a stock
+    entry_type = Column(String, default='reflection')    # pre_sell, post_sell, reflection
+    content    = Column(Text, nullable=False)
+    mood       = Column(String, nullable=True)           # calm, anxious, confident, uncertain
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class BehavioralProfile(Base):
+    __tablename__ = 'behavioral_profiles'
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    user_id         = Column(String, ForeignKey('users.id'), unique=True, nullable=False)
+    profile_type    = Column(String, nullable=False)     # panic_seller, reactive_trader, etc.
+    heed_rate       = Column(Float, default=0.0)
+    avg_hold_days   = Column(Float, default=0.0)
+    sell_frequency  = Column(Float, default=0.0)         # sells per week
+    health_score    = Column(Integer, default=50)        # 0-100
+    last_computed   = Column(DateTime, default=datetime.utcnow)

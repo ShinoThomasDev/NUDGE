@@ -24,8 +24,8 @@ TEST_CASES = [
         'signals_fired': 'trend_contradiction',
     },
     {
-        'ticker': 'TATAMOTORS',
-        'stock_name': 'Tata Motors',
+        'ticker': 'TMPV',
+        'stock_name': 'Tata Motors Passenger Vehicles Limited',
         'today_change_pct': -6.1,
         'trend_90d_pct': -8.2,
         'market_change_pct': -3.4,

@@ -131,7 +131,7 @@ nudge/
 
 ### Table: `users`
 ```sql
-id          TEXT PRIMARY KEY   -- e.g. "user_rahul_demo"
+id          TEXT PRIMARY KEY   -- e.g. "user_shinothomas_demo"
 name        TEXT
 created_at  DATETIME
 ```
@@ -195,7 +195,7 @@ Called when user taps "Sell now" on the sell screen.
 **Request body:**
 ```json
 {
-  "user_id": "user_rahul_demo",
+  "user_id": "user_shinothomas_demo",
   "ticker": "ZOMATO"
 }
 ```
@@ -249,7 +249,7 @@ Called only if user confirms sell (after nudge or directly for low-score trades)
 **Request body:**
 ```json
 {
-  "user_id": "user_rahul_demo",
+  "user_id": "user_shinothomas_demo",
   "ticker": "ZOMATO",
   "nudge_id": 42
 }
@@ -380,7 +380,7 @@ Maintain `docs/prompts/` with v1, v2, v3 versions and a note on what was wrong w
 ## Frontend Screens
 
 ### Screen 1: Portfolio (`/`)
-- Header: "Good morning, Rahul" + total portfolio value
+- Header: "Good morning, Shino" + total portfolio value
 - Market alert banner if Nifty is down > 1.5% (red) or up > 1% (green)
 - List of holdings: stock name, quantity, avg buy price, current price, today % change badge, total value
 - Tapping any holding navigates to sell confirmation
@@ -410,7 +410,7 @@ Maintain `docs/prompts/` with v1, v2, v3 versions and a note on what was wrong w
 
 ## Demo Portfolio (Seed Data)
 
-The app ships with one demo user `user_rahul_demo` pre-seeded with these holdings. All bought at realistic historical prices so that today's prices create interesting P&L scenarios.
+The app ships with one demo user `user_shinothomas_demo` pre-seeded with these holdings. All bought at realistic historical prices so that today's prices create interesting P&L scenarios.
 
 | Stock | Ticker | Qty | Avg buy | Hold days |
 |---|---|---|---|---|

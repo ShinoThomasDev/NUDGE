@@ -11,19 +11,20 @@ DEMO_HOLDINGS = [
     ('ADANIENT',  'Adani Enterprises',   10, 2840.0,  12),
     ('INFY',      'Infosys',             20, 1530.0,  90),
     ('HDFCBANK',  'HDFC Bank',           15, 1620.0, 200),
-    ('TATAMOTORS','Tata Motors',         30,  920.0,   7),
+    ('TMPV','Tata Motors Passenger Vehicles Limited',         30,  920.0,   7),
 ]
 
 def seed():
     db = SessionLocal()
     try:
-        # Idempotent: skip if already seeded
-        if db.query(User).filter(User.id == 'user_shinothomas_demo').first():
-            print('Already seeded — skipping.')
-            return
-
-        user = User(id='user_shinothomas_demo', name='Shinothomas')
-        db.add(user)
+        user = db.query(User).filter(User.id == 'user_shinothomas_demo').first()
+        if user:
+            # Delete existing holdings so we can freshly reseed them
+            db.query(Holding).filter(Holding.user_id == 'user_shinothomas_demo').delete()
+            print('Cleared existing holdings for user.')
+        else:
+            user = User(id='user_shinothomas_demo', name='Shinothomas')
+            db.add(user)
 
         for ticker, name, qty, price, hold_days in DEMO_HOLDINGS:
             holding = Holding(

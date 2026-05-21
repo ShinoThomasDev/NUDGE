@@ -7,7 +7,7 @@ STOCK_NAMES = {
     'ADANIENT':   'Adani Enterprises',
     'INFY':       'Infosys',
     'HDFCBANK':   'HDFC Bank',
-    'TATAMOTORS': 'Tata Motors',
+    'TMPV': 'Tata Motors Passenger Vehicles Limited',
 }
 
 def build_context(user_id: str, ticker: str, score_result: dict, db: Session) -> dict:
