@@ -23,10 +23,26 @@ from services.behavioral_service import (
 load_dotenv()
 Base.metadata.create_all(bind=engine)
 
+# Auto-seed the database if it's empty (specifically for ephemeral Render deployments)
+try:
+    from database import SessionLocal
+    from models import User
+    from seed import seed
+    db_session = SessionLocal()
+    if db_session.query(User).count() == 0:
+        print("Database is empty, running auto-seed...")
+        seed()
+    db_session.close()
+except Exception as e:
+    print(f"Error during auto-seeding: {e}")
+
 app = FastAPI(title='Nudge API')
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv('FRONTEND_URL', 'http://localhost:5173')],
+    allow_origins=[
+        os.getenv('FRONTEND_URL', 'http://localhost:5173'),
+        'https://nudge-mu.vercel.app'
+    ],
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
