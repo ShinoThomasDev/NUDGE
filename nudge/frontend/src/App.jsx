@@ -5,7 +5,7 @@ import Portfolio from './pages/Portfolio';
 import Analytics from './pages/Analytics';
 import Timeline from './pages/Timeline';
 import Journal from './pages/Journal';
-import SellConfirm from './components/sellConfirm';
+import SellConfirm from './components/SellConfirm';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
