@@ -69,12 +69,12 @@ def compute_portfolio_health(user_id: str, db: Session) -> dict:
     if holdings:
         avg_hold = sum((datetime.utcnow() - h.buy_date).days for h in holdings) / len(holdings)
 
-    # Compute composite score
-    score = min(100, int(
-        (heed_rate * 0.5) +
-        (min(avg_hold, 90) / 90 * 30) +
-        (20 if len(trades) < 10 else max(0, 20 - len(trades)))
-    ))
+    # Compute composite score factors
+    factor_heed = heed_rate * 0.5
+    factor_hold = min(avg_hold, 90) / 90 * 30
+    factor_trades = 20 if len(trades) < 10 else max(0, 20 - len(trades))
+    
+    score = min(100, int(factor_heed + factor_hold + factor_trades))
 
     return {
         'health_score': score,
@@ -82,6 +82,14 @@ def compute_portfolio_health(user_id: str, db: Session) -> dict:
         'avg_hold_days': round(avg_hold, 1),
         'total_trades': len(trades),
         'total_nudges': total_nudges,
+        'breakdown': {
+            'heed_score': round(factor_heed, 1),
+            'hold_score': round(factor_hold, 1),
+            'trade_score': factor_trades,
+            'max_heed': 50,
+            'max_hold': 30,
+            'max_trade': 20
+        }
     }
 
 def generate_insight_cards(user_id: str, db: Session) -> dict:

@@ -52,6 +52,7 @@ app.add_middleware(
 class SellIntentRequest(BaseModel):
     user_id: str
     ticker:  str
+    quantity: int
     force_nudge: bool = False
 
 class NudgeOutcomeRequest(BaseModel):
@@ -90,7 +91,7 @@ def sell_intent(req: SellIntentRequest, db: Session = Depends(get_db)):
     db.commit()
 
     # 2. Score
-    result = compute_score(req.user_id, req.ticker, db)
+    result = compute_score(req.user_id, req.ticker, req.quantity, db)
     score  = result['score']
     level  = result['level']
 
@@ -218,6 +219,10 @@ def get_dashboard(user_id: str, db: Session = Depends(get_db)):
     nudges = db.query(Nudge).filter(Nudge.user_id == user_id).all()
     total  = len(nudges)
     heeded = sum(1 for n in nudges if n.heeded is True)
+    
+    # Include behavioral health in the dashboard payload
+    health_data = compute_portfolio_health(user_id, db)
+
     return {
         'total_nudges':   total,
         'heeded_nudges':  heeded,
@@ -225,7 +230,8 @@ def get_dashboard(user_id: str, db: Session = Depends(get_db)):
         'nudge_history':  [{'id': n.id, 'ticker': n.ticker, 'score': n.score,
                             'level': n.level, 'message': n.message,
                             'heeded': n.heeded, 'created_at': str(n.created_at)}
-                           for n in nudges[-10:]],
+                           for n in nudges[-100:]],
+        'health': health_data
     }
 
 

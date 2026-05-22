@@ -8,8 +8,8 @@ export const getMarketStatus = ()       => api.get('/api/market-status');
 export const getDashboard    = (userId) => api.get(`/api/dashboard/${userId}`);
 
 // ── Sell Flow ──────────────────────────────────────────────────
-export const postSellIntent = (userId, ticker, force_nudge = false) =>
-  api.post('/api/sell-intent', { user_id: userId, ticker, force_nudge });
+export const postSellIntent = (userId, ticker, quantity, force_nudge = false) =>
+  api.post('/api/sell-intent', { user_id: userId, ticker, quantity, force_nudge });
 
 export const postNudgeOutcome = (nudgeId, heeded) =>
   api.post('/api/nudge-outcome', { nudge_id: nudgeId, heeded });

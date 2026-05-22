@@ -135,7 +135,50 @@ def _signal_hold_duration(user_id: str, ticker: str, db: Session) -> dict:
     }
 
 
-def compute_score(user_id: str, ticker: str, db: Session) -> dict:
+def _signal_position_exit_intensity(user_id: str, ticker: str, quantity: int, db: Session) -> dict:
+    '''
+    Signal 5: What percentage of the holding is the user trying to sell?
+    
+    Basis: Selling an entire position is psychologically different from trimming.
+    Large exits often indicate panic selling, emotional reactions, or fear-driven liquidation.
+    
+    Scoring:
+    >= 1.0 -> 25 points
+    >= 0.8 -> 20 points
+    >= 0.5 -> 12 points
+    >= 0.25 -> 5 points
+    '''
+    holding = db.query(Holding).filter(Holding.user_id == user_id, Holding.ticker == ticker).first()
+    if not holding or holding.quantity <= 0:
+        return {'value': 0, 'score': 0, 'label': 'No holding found', 'fired': False, 'sell_ratio': 0}
+        
+    sell_ratio = quantity / holding.quantity
+    
+    if sell_ratio >= 1.0:
+        score = 25
+        label = 'Attempting to liquidate entire position'
+    elif sell_ratio >= 0.8:
+        score = 20
+        label = 'Attempting a major position exit'
+    elif sell_ratio >= 0.5:
+        score = 12
+        label = 'Attempting a partial position exit'
+    elif sell_ratio >= 0.25:
+        score = 5
+        label = 'Trimming position'
+    else:
+        score = 0
+        label = 'Small trim'
+        
+    return {
+        'value': round(sell_ratio * 100),
+        'score': score,
+        'label': label,
+        'fired': score > 0,
+        'sell_ratio': sell_ratio
+    }
+
+def compute_score(user_id: str, ticker: str, quantity: int, db: Session) -> dict:
     '''
     Main entry point. Returns full signal breakdown + total score + level.
     Called by POST /api/sell-intent.
@@ -144,8 +187,9 @@ def compute_score(user_id: str, ticker: str, db: Session) -> dict:
     s2 = _signal_market_dip()
     s3 = _signal_trend_contradiction(ticker)
     s4 = _signal_hold_duration(user_id, ticker, db)
+    s5 = _signal_position_exit_intensity(user_id, ticker, quantity, db)
 
-    total = s1['score'] + s2['score'] + s3['score'] + s4['score']
+    total = s1['score'] + s2['score'] + s3['score'] + s4['score'] + s5['score']
     total = min(total, 100)  # hard cap
 
     if total < 35:   level = 'low'
@@ -160,6 +204,7 @@ def compute_score(user_id: str, ticker: str, db: Session) -> dict:
             'market_dip':          s2,
             'trend_contradiction': s3,
             'hold_duration':       s4,
+            'position_exit':       s5,
         },
         # Convenience fields for llm_caller context builder
         'today_change_pct':  s3.get('today_change_pct', 0),
@@ -167,4 +212,5 @@ def compute_score(user_id: str, ticker: str, db: Session) -> dict:
         'market_change_pct': s2.get('value', 0),
         'hold_days':         s4.get('value', 0),
         'current_price':     s3.get('current_price', 0),
+        'sell_ratio':        s5.get('sell_ratio', 0),
     }

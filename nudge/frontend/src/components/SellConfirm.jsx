@@ -7,28 +7,42 @@ import toast from 'react-hot-toast';
 const USER_ID = 'user_shinothomas_demo';
 
 export default function SellConfirm() {
-  const { ticker }         = useParams();
-  const { state }          = useLocation();
-  const navigate           = useNavigate();
-  const holding            = state?.holding;
+  const { ticker } = useParams();
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const holding = state?.holding;
 
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [nudgeData, setNudgeData] = useState(null); // populated if nudge fires
   const [forceNudge, setForceNudge] = useState(false);
-  
+
   // Guard check before accessing holding
   if (!holding) { navigate('/'); return null; }
 
-  const [sellQty, setSellQty] = useState(holding.quantity);
+  const [sellQty, setSellQty] = useState(1);
 
   const estimatedPnl = (holding.current_price - holding.avg_buy_price) * sellQty;
+  const sellRatio = sellQty / holding.quantity;
+  
+  let severityLabel = 'Small Trim';
+  let severityColor = 'bg-slate-100 text-slate-600';
+  if (sellRatio >= 1.0) {
+    severityLabel = 'Full Liquidation';
+    severityColor = 'bg-rose-100 text-rose-700 font-bold';
+  } else if (sellRatio >= 0.8) {
+    severityLabel = 'Major Exit';
+    severityColor = 'bg-rose-50 text-rose-600 font-semibold';
+  } else if (sellRatio >= 0.5) {
+    severityLabel = 'Partial Exit';
+    severityColor = 'bg-amber-50 text-amber-700 font-medium';
+  }
 
   const handleSellNow = async () => {
     setShowConfirm(false);
     setLoading(true);
     try {
-      const res = await postSellIntent(USER_ID, ticker, forceNudge);
+      const res = await postSellIntent(USER_ID, ticker, sellQty, forceNudge);
       if (res.data.action === 'nudge') {
         setNudgeData(res.data); // show modal
       } else {
@@ -50,87 +64,91 @@ export default function SellConfirm() {
       {/* Top Nav */}
       <div className='flex items-center mb-8'>
         <button onClick={() => navigate(-1)} className='text-slate-500 hover:text-slate-900 transition-colors flex items-center text-sm font-medium'>
-          <svg className='w-4 h-4 mr-1.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2.5} d='M15 19l-7-7 7-7'/></svg>
+          <svg className='w-4 h-4 mr-1.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2.5} d='M15 19l-7-7 7-7' /></svg>
           Back to Portfolio
         </button>
       </div>
 
       {/* Ticket Card */}
       <div className='bg-white rounded-[2rem] p-10 md:p-10 shadow-sm border border-slate-200 relative'>
-      
+
         <div className='mb-12 text-center'>
           <p className='text-sm font-bold text-slate-400 uppercase tracking-widest mb-2'>Sell Order</p>
           <h2 className='text-4xl font-bold tracking-tight text-slate-900'>{holding.stock_name}</h2>
-          <p className={`text-sm font-semibold mt-2 flex items-center justify-center ${ 
-            holding.today_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'
-          }`}>
+          <p className={`text-sm font-semibold mt-2 flex items-center justify-center ${holding.today_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'
+            }`}>
             {holding.today_pct >= 0 ? '+' : ''}{holding.today_pct}% today
           </p>
         </div>
 
         <div className='mt-10 space-y-4 text-sm text-slate-600'>
-        <div className='flex justify-between items-center'>
-  <span className='text-slate-500'>Quantity</span>
+          <div className='flex justify-between items-center'>
+            <div className='flex flex-col'>
+              <span className='text-slate-500 mb-1'>Quantity</span>
+              <span className={`text-xs px-2 py-0.5 rounded-md self-start ${severityColor}`}>
+                {severityLabel} ({(sellRatio * 100).toFixed(0)}%)
+              </span>
+            </div>
 
-  <div className='flex items-center space-x-3'>
-    
-    {/* Max Button */}
-    <button
-      onClick={() => setSellQty(holding.quantity)}
-      className='px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors'
-    >
-      Max
-    </button>
+            <div className='flex items-center space-x-3'>
 
-    {/* Quantity Stepper */}
-    <div className='flex items-center space-x-2 bg-slate-50 p-1 rounded-xl border border-slate-100'>
-      
-      <button 
-        onClick={() => setSellQty(Math.max(1, sellQty - 1))}
-        disabled={sellQty <= 1}
-        className='w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-slate-100 text-slate-600 hover:text-slate-900 disabled:opacity-40 transition-colors'
-      >
-        <svg 
-          className='w-4 h-4' 
-          fill='none' 
-          stroke='currentColor' 
-          viewBox='0 0 24 24'
-        >
-          <path 
-            strokeLinecap='round' 
-            strokeLinejoin='round' 
-            strokeWidth={2.5} 
-            d='M20 12H4'
-          />
-        </svg>
-      </button>
+              {/* Max Button */}
+              <button
+                onClick={() => setSellQty(holding.quantity)}
+                className='px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors'
+              >
+                Max
+              </button>
 
-      <span className='font-semibold text-slate-900 w-8 text-center text-base'>
-        {sellQty}
-      </span>
+              {/* Quantity Stepper */}
+              <div className='flex items-center space-x-2 bg-slate-50 p-1 rounded-xl border border-slate-100'>
 
-      <button 
-        onClick={() => setSellQty(Math.min(holding.quantity, sellQty + 1))}
-        disabled={sellQty >= holding.quantity}
-        className='w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-slate-100 text-slate-600 hover:text-slate-900 disabled:opacity-40 transition-colors'
-      >
-        <svg 
-          className='w-4 h-4' 
-          fill='none' 
-          stroke='currentColor' 
-          viewBox='0 0 24 24'
-        >
-          <path 
-            strokeLinecap='round' 
-            strokeLinejoin='round' 
-            strokeWidth={2.5} 
-            d='M12 4v16m8-8H4'
-          />
-        </svg>
-      </button>
+                <button
+                  onClick={() => setSellQty(Math.max(1, sellQty - 1))}
+                  disabled={sellQty <= 1}
+                  className='w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-slate-100 text-slate-600 hover:text-slate-900 disabled:opacity-40 transition-colors'
+                >
+                  <svg
+                    className='w-4 h-4'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2.5}
+                      d='M20 12H4'
+                    />
+                  </svg>
+                </button>
 
-    </div>
-  </div>
+                <span className='font-semibold text-slate-900 w-8 text-center text-base'>
+                  {sellQty}
+                </span>
+
+                <button
+                  onClick={() => setSellQty(Math.min(holding.quantity, sellQty + 1))}
+                  disabled={sellQty >= holding.quantity}
+                  className='w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-slate-100 text-slate-600 hover:text-slate-900 disabled:opacity-40 transition-colors'
+                >
+                  <svg
+                    className='w-4 h-4'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2.5}
+                      d='M12 4v16m8-8H4'
+                    />
+                  </svg>
+                </button>
+
+              </div>
+            </div>
 
           </div>
           <div className='flex justify-between items-center'>
@@ -141,12 +159,11 @@ export default function SellConfirm() {
             <span className='text-slate-500'>Avg buy price</span>
             <span className='font-medium text-slate-900'>₹{holding.avg_buy_price}</span>
           </div>
-          
+
           <div className='flex justify-between items-center pt-4 mt-2 border-t border-slate-100'>
             <span className='font-medium text-slate-700'>Estimated P&L</span>
-            <div className={`px-3 py-1 rounded-full font-semibold ${ 
-              estimatedPnl >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-            }`}>
+            <div className={`px-3 py-1 rounded-full font-semibold ${estimatedPnl >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+              }`}>
               {estimatedPnl >= 0 ? '+' : ''}₹{Math.abs(estimatedPnl).toFixed(0)}
             </div>
           </div>
@@ -200,14 +217,14 @@ export default function SellConfirm() {
               You are about to sell <span className='font-bold text-slate-900'>{sellQty} shares</span> of <span className='font-bold text-slate-900'>{holding.stock_name}</span>. Proceed?
             </p>
             <div className='flex gap-3'>
-              <button 
+              <button
                 onClick={() => setShowConfirm(false)}
                 disabled={loading}
                 className='flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl transition disabled:opacity-50'
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleSellNow}
                 disabled={loading}
                 className='flex-1 bg-[#0a0a0a] hover:bg-black text-white font-semibold py-3 rounded-xl shadow-md transition disabled:opacity-50 flex justify-center'

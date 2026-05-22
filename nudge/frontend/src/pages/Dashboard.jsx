@@ -144,28 +144,51 @@ export default function Dashboard() {
             <Card.Description>Your investing discipline score</Card.Description>
           </Card.Header>
           <div className='flex-1 flex flex-col items-center justify-center gap-4'>
-            <div className='relative w-36 h-36'>
+            <div className='relative w-36 h-36 mt-4'>
               <svg viewBox='0 0 100 100' className='w-full h-full -rotate-90'>
                 <circle cx='50' cy='50' r='42' fill='none' stroke='#f1f5f9' strokeWidth='8' />
                 <circle 
                   cx='50' cy='50' r='42' fill='none' 
-                  stroke={analytics?.heed_rate >= 70 ? '#10b981' : analytics?.heed_rate >= 40 ? '#f59e0b' : '#ef4444'}
+                  stroke={analytics?.health?.health_score >= 70 ? '#10b981' : analytics?.health?.health_score >= 40 ? '#f59e0b' : '#ef4444'}
                   strokeWidth='8' strokeLinecap='round'
-                  strokeDasharray={`${(analytics?.heed_rate || 0) * 2.64} 264`}
+                  strokeDasharray={`${(analytics?.health?.health_score || 0) * 2.64} 264`}
                   className='transition-all duration-1000'
                 />
               </svg>
               <div className='absolute inset-0 flex flex-col items-center justify-center'>
-                <span className='text-3xl font-bold text-slate-900'>{analytics?.heed_rate || 0}</span>
+                <span className='text-3xl font-bold text-slate-900'>{analytics?.health?.health_score || 0}</span>
                 <span className='text-xs text-slate-500 font-medium'>/ 100</span>
               </div>
             </div>
-            <div className='text-center'>
-              <Badge color={analytics?.heed_rate >= 70 ? 'emerald' : analytics?.heed_rate >= 40 ? 'amber' : 'rose'}>
+            
+            <div className='w-full px-6 mt-2'>
+              <div className='grid grid-cols-3 gap-2 text-center text-[10px] uppercase font-bold tracking-wider text-slate-400'>
+                <div>Nudges</div>
+                <div>Holding</div>
+                <div>Trades</div>
+              </div>
+              <div className='grid grid-cols-3 gap-2 text-center text-sm font-semibold text-slate-700 mt-1'>
+                <div className='flex justify-center items-center gap-1'>
+                  <span className='text-slate-900'>{analytics?.health?.breakdown?.heed_score || 0}</span>
+                  <span className='text-xs font-normal text-slate-400'>/ {analytics?.health?.breakdown?.max_heed || 50}</span>
+                </div>
+                <div className='flex justify-center items-center gap-1'>
+                  <span className='text-slate-900'>{analytics?.health?.breakdown?.hold_score || 0}</span>
+                  <span className='text-xs font-normal text-slate-400'>/ {analytics?.health?.breakdown?.max_hold || 30}</span>
+                </div>
+                <div className='flex justify-center items-center gap-1'>
+                  <span className='text-slate-900'>{analytics?.health?.breakdown?.trade_score || 0}</span>
+                  <span className='text-xs font-normal text-slate-400'>/ {analytics?.health?.breakdown?.max_trade || 20}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className='text-center mt-2'>
+              <Badge color={analytics?.health?.health_score >= 70 ? 'emerald' : analytics?.health?.health_score >= 40 ? 'amber' : 'rose'}>
                 <Shield className='w-3 h-3' />
-                {analytics?.heed_rate >= 70 ? 'Disciplined' : analytics?.heed_rate >= 40 ? 'Reactive' : 'High Risk'}
+                {analytics?.health?.health_score >= 70 ? 'Disciplined' : analytics?.health?.health_score >= 40 ? 'Reactive' : 'High Risk'}
               </Badge>
-              <p className='text-xs text-slate-500 mt-2'>Based on {analytics?.total_nudges || 0} interventions</p>
+              <p className='text-xs text-slate-400 mt-2'>Based on {analytics?.total_nudges || 0} interventions</p>
             </div>
           </div>
         </Card>

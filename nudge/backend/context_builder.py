@@ -20,6 +20,12 @@ def build_context(user_id: str, ticker: str, score_result: dict, db: Session) ->
         if sig.get('fired', False)
     ]
 
+    sell_ratio = score_result.get('sell_ratio', 0)
+    severity = 'Small Trim'
+    if sell_ratio >= 1.0: severity = 'Full Liquidation'
+    elif sell_ratio >= 0.8: severity = 'Major Exit'
+    elif sell_ratio >= 0.5: severity = 'Partial Exit'
+
     return {
         'ticker':            ticker,
         'stock_name':        STOCK_NAMES.get(ticker, ticker),
@@ -29,4 +35,6 @@ def build_context(user_id: str, ticker: str, score_result: dict, db: Session) ->
         'hold_days':         score_result['hold_days'],
         'level':             score_result['level'],
         'signals_fired':     ', '.join(signals_fired) or 'none',
+        'sell_ratio':        sell_ratio,
+        'severity':          severity,
     }
