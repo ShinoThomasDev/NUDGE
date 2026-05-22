@@ -1,8 +1,8 @@
-import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from models import SellAttempt, Holding
+from services.market_service import fetch_stock_data, resolve_ticker
 
 
 def _signal_sell_frequency(user_id: str, ticker: str, db: Session) -> dict:
@@ -44,11 +44,7 @@ def _signal_market_dip() -> dict:
     Scoring: fires only if Nifty < -1.5%. Score = abs(change) * 5, max 25.
     '''
     try:
-        nifty = yf.download('^NSEI', period='5d', interval='1d', progress=False)
-        if 'Close' in nifty:
-            nifty = nifty['Close'].dropna()
-        else:
-            nifty = nifty.dropna()
+        nifty = fetch_stock_data('^NSEI', period='5d', interval='1d')
             
         if len(nifty) < 2:
             return {'value': 0, 'score': 0, 'label': 'Market data unavailable', 'fired': False}
@@ -67,23 +63,6 @@ def _signal_market_dip() -> dict:
     except Exception as e:
         return {'value': 0, 'score': 0, 'label': f'Market fetch error: {e}', 'fired': False}
 
-# Mapping for known ticker changes to ensure Yahoo Finance compatibility
-TICKER_ALIASES = {
-    'ZOMATO': 'ETERNAL',
-    'TATAMOTORS': 'TMPV',
-    
-}
-
-'''
-Now the code correctly fetches the historical data 
- for Zomato without producing the "symbol may be delisted" error.
-
-'''
-def resolve_ticker(ticker: str) -> str:
-    """Returns the current active ticker for Yahoo Finance if a known alias exists."""
-    return TICKER_ALIASES.get(ticker.upper(), ticker.upper())
-
-
 def _signal_trend_contradiction(ticker: str) -> dict:
     '''
     Signal 3: Is the stock up significantly over 90 days but down today?
@@ -95,14 +74,8 @@ def _signal_trend_contradiction(ticker: str) -> dict:
     Scoring: fires if 90d_return > 5% AND today < -2%. Score = 90d * 0.8, max 25.
     '''
     try:
-        yf_ticker = resolve_ticker(ticker)
-        #yf_ticker because sometimes yfinance does not find the ticker symbol
-        #eg : zomato is now ETERNAL so we use yf_ticker
-        hist = yf.download(f'{yf_ticker}.NS', period='95d', interval='1d', progress=False)
-        if 'Close' in hist:
-            hist = hist['Close'].dropna()
-        else:
-            hist = hist.dropna()
+        # fetch_stock_data already resolves the ticker
+        hist = fetch_stock_data(ticker, period='95d', interval='1d')
             
         if len(hist) < 5:
             return {'value': 0, 'score': 0, 'label': 'History unavailable', 'fired': False}
